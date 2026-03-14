@@ -1,67 +1,88 @@
+import subprocess
+import sys
+import os
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
-import logging
-import os
 
-# Configuration des logs
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# ── Configuration ──
+PYTHON      = sys.executable
+SCRAPER_DIR = os.path.dirname(os.path.abspath(__file__))
+
+EMPLOIDAKAR_SCRIPT    = os.path.join(SCRAPER_DIR, "EmploiDakar.py")
+GOAFRICAONLINE_SCRIPT = os.path.join(SCRAPER_DIR, "GoAfricaOnline.py")
+FUSION_SCRIPT         = os.path.join(SCRAPER_DIR, "fusion.py")
+CLEANING_SCRIPT       = os.path.join(SCRAPER_DIR, "cleaning.py")
 
 
-def lancer_scraping():
-    """
-    Fonction principale qui lance le scraping
-    """
-    logger.info(f"Debut du scraping automatique : {datetime.now()}")
-    
+# FONCTIONS — Lancer les scrapers
+
+def lancer_emploidakar():
+    print(" Lancement scraper EmploiDakar...")
     try:
-        # On appellera le scraper ici quand il sera pret
-        logger.info("Scraping en cours...")
-        
-        # Creer le dossier data/raw s'il n'existe pas
-        os.makedirs("data/raw", exist_ok=True)
-        
-        logger.info(f"Scraping termine avec succes : {datetime.now()}")
-        
+        subprocess.run([PYTHON, EMPLOIDAKAR_SCRIPT], check=True)
+        print("EmploiDakar terminé !")
     except Exception as e:
-        logger.error(f"Erreur pendant le scraping : {e}")
+        print(f" Erreur EmploiDakar : {e}")
 
-
-def demarrer_scheduler():
-    """
-    Demarre le planificateur automatique
-    """
-    scheduler = BlockingScheduler()
-    
-    # Planification 1 : Tous les jours a 8h00
-    scheduler.add_job(
-        lancer_scraping,
-        CronTrigger(hour=8, minute=0),
-        id='scraping_matin',
-        name='Scraping automatique matin'
-    )
-    
-    # Planification 2 : Tous les jours a 18h00
-    scheduler.add_job(
-        lancer_scraping,
-        CronTrigger(hour=18, minute=0),
-        id='scraping_soir',
-        name='Scraping automatique soir'
-    )
-    
-    logger.info("Planificateur demarre !")
-    logger.info("Scraping programme a 8h00 et 18h00 tous les jours")
-    
+def lancer_goafricaonline():
+    print(" Lancement scraper GoAfricaOnline...")
     try:
-        scheduler.start()
-    except KeyboardInterrupt:
-        logger.info("Planificateur arrete.")
-        scheduler.shutdown()
+        subprocess.run([PYTHON, GOAFRICAONLINE_SCRIPT], check=True)
+        print("GoAfricaOnline terminé !")
+    except Exception as e:
+        print(f" Erreur GoAfricaOnline : {e}")
+
+def lancer_fusion():
+    print("Fusion des fichiers CSV...")
+    try:
+        subprocess.run([PYTHON, FUSION_SCRIPT], check=True)
+        print("Fusion terminée !")
+    except Exception as e:
+        print(f" Erreur fusion : {e}")
+
+def lancer_cleaning():
+    print("Nettoyage des données...")
+    try:
+        subprocess.run([PYTHON, CLEANING_SCRIPT], check=True)
+        print("Nettoyage terminé !")
+    except Exception as e:
+        print(f" Erreur nettoyage : {e}")
+
+def lancer_scraping_complet():
+    print("\n" + "="*50)
+    print("DÉMARRAGE DU SCRAPING AUTOMATIQUE")
+    print("="*50)
+    lancer_emploidakar()
+    lancer_goafricaonline()
+    lancer_fusion()
+    lancer_cleaning()
+    print("\nSCRAPING COMPLET TERMINÉ !")
+    print("="*50 + "\n")
 
 
-if __name__ == "__main__":
-    demarrer_scheduler()
+# PLANIFICATION — 8h00 et 18h00 tous les jours
+
+scheduler = BlockingScheduler()
+
+scheduler.add_job(
+    lancer_scraping_complet,
+    CronTrigger(hour=8, minute=0),
+    id="scraping_matin",
+    name="Scraping automatique 8h00"
+)
+
+scheduler.add_job(
+    lancer_scraping_complet,
+    CronTrigger(hour=18, minute=0),
+    id="scraping_soir",
+    name="Scraping automatique 18h00"
+)
+
+print("Scheduler démarré !")
+print("Scraping planifié à 8h00 et 18h00 tous les jours")
+print("   Appuyez sur Ctrl+C pour arrêter\n")
+
+try:
+    scheduler.start()
+except KeyboardInterrupt:
+    print("\nScheduler arrêté")
