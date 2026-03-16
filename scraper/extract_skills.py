@@ -180,7 +180,7 @@ EXPERIENCE_LEVELS = {
 
 # Secteurs d'activité
 SECTORS = {
-    "Informatique / IT": ["informatique", "it", "digital", "tech", "software", "logiciel", "développement"],
+    "Informatique / IT":["informatique","digital","tech","software","logiciel","développement","développeur","developer","data","data science","machine learning","python","java","javascript","react","angular""node","sql","devops", "cloud","cybersecurity","réseau informatique"],
     "Banque / Finance": ["banque", "finance", "assurance", "banking", "financial"],
     "Commerce / Distribution": ["commerce", "distribution", "vente", "retail", "grande distribution"],
     "BTP / Construction": ["btp", "construction", "bâtiment", "génie civil", "chantier"],
