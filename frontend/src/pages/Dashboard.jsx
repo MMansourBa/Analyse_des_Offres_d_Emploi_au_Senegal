@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -12,7 +13,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider
+  Divider,
+  Alert
 } from '@mui/material';
 import {
   BarChart,
@@ -34,7 +36,15 @@ import {
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { getStats, getTopEntreprises, getEvolution } from '../services/api';
+import {
+  getStats,
+  getTopEntreprises,
+  getEvolution,
+  getCompetences,
+  getSecteurs,
+  getVilles,
+  getContrats
+} from '../services/api';
 
 // Correction pour les icônes Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -47,7 +57,7 @@ L.Icon.Default.mergeOptions({
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658', '#8dd1e1'];
 
 const KPICard = ({ title, value, subtitle, color }) => (
-  <Card sx={{ height: '100%', background: `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`, color: 'white' }}>
+  <Card sx={{ height: '100%', background: `linear-gradient(135deg, ${color} 30%, ${color}dd 90%)`, color: 'white' }}>
     <CardContent>
       <Typography variant="h6" gutterBottom>{title}</Typography>
       <Typography variant="h3" component="div">{value}</Typography>
@@ -58,85 +68,165 @@ const KPICard = ({ title, value, subtitle, color }) => (
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // États pour les données
   const [stats, setStats] = useState(null);
   const [entreprises, setEntreprises] = useState([]);
   const [evolution, setEvolution] = useState([]);
+  const [competences, setCompetences] = useState([]);
+  const [secteurs, setSecteurs] = useState([]);
+  const [villes, setVilles] = useState([]);
+  const [contrats, setContrats] = useState([]);
+  
   const [timeRange, setTimeRange] = useState('6mois');
 
-  // Données simulées pour les graphiques (à remplacer par les vraies données API)
-  const [secteursData, setSecteursData] = useState([]);
-  const [contratsData, setContratsData] = useState([]);
-  const [villesData, setVillesData] = useState([]);
-  const [competencesData, setCompetencesData] = useState([]);
+  // Coordonnées approximatives des villes sénégalaises
+  const villesCoords = {
+    'Dakar': [14.7167, -17.4677],
+    'Thiès': [14.7833, -16.9167],
+    'Saint-Louis': [16.0333, -16.5],
+    'Ziguinchor': [12.5833, -16.2667],
+    'Kaolack': [14.0167, -16.25],
+    'Mbour': [14.4167, -16.9667],
+    'Louga': [15.6167, -16.2167],
+    'Tambacounda': [13.7667, -13.6667],
+    'Kolda': [12.8833, -14.95],
+    'Matam': [15.6167, -13.3167],
+    'Kédougou': [12.55, -12.1833],
+    'Sédhiou': [12.7, -15.55],
+    'Diourbel': [14.65, -16.2333],
+    'Fatick': [14.3333, -16.4167],
+    'Kaffrine': [14.1, -15.55]
+  };
 
   useEffect(() => {
-    fetchData();
+    fetchAllData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchAllData = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      const [statsRes, entreprisesRes, evolutionRes] = await Promise.all([
+      console.log('Chargement des données du dashboard...');
+      
+      // Lancer toutes les requêtes en parallèle
+      const [
+        statsRes,
+        entreprisesRes,
+        evolutionRes,
+        competencesRes,
+        secteursRes,
+        villesRes,
+        contratsRes
+      ] = await Promise.allSettled([
         getStats(),
         getTopEntreprises(),
-        getEvolution()
+        getEvolution(),
+        getCompetences(),
+        getSecteurs(),
+        getVilles(),
+        getContrats()
       ]);
 
-      setStats(statsRes.data);
-      setEntreprises(entreprisesRes.data || []);
-      setEvolution(evolutionRes.data || []);
+      // Traiter les résultats
+      if (statsRes.status === 'fulfilled') {
+        console.log('Stats reçues:', statsRes.value.data);
+        setStats(statsRes.value.data);
+      } else {
+        console.error('Erreur stats:', statsRes.reason);
+      }
 
-      // Données simulées en attendant les vraies APIs
-      setSecteursData([
-        { nom: 'Informatique / IT', offres: 145 },
-        { nom: 'Logistique / Transport', offres: 98 },
-        { nom: 'Commercial / Vente', offres: 87 },
-        { nom: 'RH / Administration', offres: 65 },
-        { nom: 'Marketing / Communication', offres: 54 },
-        { nom: 'Finance / Comptabilité', offres: 43 },
-        { nom: 'Ingénierie', offres: 38 },
-        { nom: 'Santé', offres: 22 }
-      ]);
+      if (entreprisesRes.status === 'fulfilled') {
+        console.log('Entreprises reçues:', entreprisesRes.value.data);
+        setEntreprises(entreprisesRes.value.data);
+      }
 
-      setContratsData([
-        { nom: 'CDI', valeur: 45 },
-        { nom: 'CDD', valeur: 38 },
-        { nom: 'Stage', valeur: 12 },
-        { nom: 'Freelance', valeur: 5 }
-      ]);
+      if (evolutionRes.status === 'fulfilled') {
+        console.log('Evolution reçue:', evolutionRes.value.data);
+        setEvolution(evolutionRes.value.data);
+      }
 
-      setVillesData([
-        { nom: 'Dakar', offres: 320, lat: 14.7167, lng: -17.4677 },
-        { nom: 'Thiès', offres: 85, lat: 14.7833, lng: -16.9167 },
-        { nom: 'Saint-Louis', offres: 42, lat: 16.0333, lng: -16.5 },
-        { nom: 'Ziguinchor', offres: 28, lat: 12.5833, lng: -16.2667 },
-        { nom: 'Kaolack', offres: 25, lat: 14.0167, lng: -16.25 },
-        { nom: 'Mbour', offres: 23, lat: 14.4167, lng: -16.9667 }
-      ]);
+      if (competencesRes.status === 'fulfilled') {
+        console.log('Compétences reçues:', competencesRes.value.data);
+        // Prendre les compétences structurées ou libres selon ce qui est disponible
+        const data = competencesRes.value.data;
+        if (data.competences_structurees) {
+          setCompetences(data.competences_structurees);
+        } else if (Array.isArray(data)) {
+          setCompetences(data);
+        }
+      }
 
-      setCompetencesData([
-        { nom: 'Gestion de projet', count: 156 },
-        { nom: 'Communication', count: 142 },
-        { nom: 'Leadership', count: 128 },
-        { nom: 'Anglais', count: 115 },
-        { nom: 'Bureautique', count: 98 },
-        { nom: 'Analyse de données', count: 87 },
-        { nom: 'Service client', count: 76 },
-        { nom: 'Travail d\'équipe', count: 72 },
-        { nom: 'Rigueur', count: 68 },
-        { nom: 'Résolution de problèmes', count: 65 }
-      ]);
+      if (secteursRes.status === 'fulfilled') {
+        console.log('Secteurs reçus:', secteursRes.value.data);
+        setSecteurs(secteursRes.value.data);
+      }
+
+      if (villesRes.status === 'fulfilled') {
+        console.log('Villes reçues:', villesRes.value.data);
+        setVilles(villesRes.value.data);
+      }
+
+      if (contratsRes.status === 'fulfilled') {
+        console.log('Contrats reçus:', contratsRes.value.data);
+        setContrats(contratsRes.value.data);
+      }
 
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      console.error('Erreur globale:', error);
+      setError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
   };
 
   const filterEvolutionData = () => {
-    if (!evolution.length) return [];
+    if (!evolution || evolution.length === 0) return [];
+    
     const months = timeRange === '3mois' ? 3 : timeRange === '6mois' ? 6 : 12;
     return evolution.slice(-months);
+  };
+
+  // Préparer les données pour les graphiques
+  const prepareSecteursData = () => {
+    if (!secteurs || secteurs.length === 0) return [];
+    return secteurs.slice(0, 8).map(s => ({
+      nom: s.secteur || 'Non spécifié',
+      offres: s.count || 0
+    }));
+  };
+
+  const prepareContratsData = () => {
+    if (!contrats || contrats.length === 0) return [];
+    return contrats.map(c => ({
+      nom: c.type_contrat || 'Non spécifié',
+      valeur: c.count || 0
+    }));
+  };
+
+  const prepareVillesData = () => {
+    if (!villes || villes.length === 0) return [];
+    return villes.slice(0, 10).map(v => ({
+      nom: v.ville || 'Non spécifié',
+      offres: v.count || 0,
+      lat: villesCoords[v.ville] ? villesCoords[v.ville][0] : 14.7167,
+      lng: villesCoords[v.ville] ? villesCoords[v.ville][1] : -17.4677
+    }));
+  };
+
+  const prepareCompetencesData = () => {
+    if (!competences || competences.length === 0) return [];
+    return competences.slice(0, 10).map(c => ({
+      nom: c.nom || c.competence || 'Non spécifié',
+      count: c.count || 0
+    }));
+  };
+
+  const prepareEntreprisesData = () => {
+    if (!entreprises || entreprises.length === 0) return [];
+    return entreprises.slice(0, 5);
   };
 
   if (loading) {
@@ -146,6 +236,21 @@ const Dashboard = () => {
       </Box>
     );
   }
+
+  if (error) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Alert severity="error">{error}</Alert>
+      </Container>
+    );
+  }
+
+  const secteursData = prepareSecteursData();
+  const contratsData = prepareContratsData();
+  const villesData = prepareVillesData();
+  const competencesData = prepareCompetencesData();
+  const entreprisesData = prepareEntreprisesData();
+  const evolutionData = filterEvolutionData();
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -157,12 +262,12 @@ const Dashboard = () => {
       </Typography>
       <Divider sx={{ mb: 4 }} />
 
-      {/* KPIs */}
+      {/* KPIs avec vraies données */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Total Offres"
-            value={stats?.total_offres || 523}
+            value={stats?.total_offres?.toLocaleString() || '0'}
             subtitle="Offres analysées"
             color="#1976d2"
           />
@@ -170,122 +275,31 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Secteur Leader"
-            value="Informatique"
-            subtitle="145 offres"
+            value={stats?.secteur_dominant?.secteur || 'N/A'}
+            subtitle={stats?.secteur_dominant ? `${stats.secteur_dominant.count} offres` : 'Aucune donnée'}
             color="#2e7d32"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Ville Leader"
-            value="Dakar"
-            subtitle="320 offres"
+            value={stats?.ville_top?.ville || 'N/A'}
+            subtitle={stats?.ville_top ? `${stats.ville_top.count} offres` : 'Aucune donnée'}
             color="#ed6c02"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Croissance"
-            value="+12.5%"
-            subtitle="vs mois dernier"
+            value={`${stats?.croissance_mensuelle > 0 ? '+' : ''}${stats?.croissance_mensuelle || 0}%`}
+            subtitle="vs mois précédent"
             color="#9c27b0"
           />
         </Grid>
       </Grid>
 
-      {/* Première ligne de graphiques */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Offres par secteur */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Offres par Secteur d'Activité
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={secteursData} layout="vertical" margin={{ left: 100 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="nom" type="category" width={100} />
-                <Tooltip />
-                <Bar dataKey="offres" fill="#1976d2">
-                  {secteursData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
 
-        {/* Répartition par type de contrat */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" gutterBottom>
-              Répartition par Type de Contrat
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={contratsData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ nom, percent }) => `${nom} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="valeur"
-                >
-                  {contratsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Deuxième ligne - Évolution */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
-                Évolution du Nombre d'Offres
-              </Typography>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Période</InputLabel>
-                <Select
-                  value={timeRange}
-                  label="Période"
-                  onChange={(e) => setTimeRange(e.target.value)}
-                >
-                  <MenuItem value="3mois">3 derniers mois</MenuItem>
-                  <MenuItem value="6mois">6 derniers mois</MenuItem>
-                  <MenuItem value="12mois">12 derniers mois</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={evolution.length ? filterEvolutionData() : [
-                { mois: 'Jan', offres: 65 },
-                { mois: 'Fév', offres: 78 },
-                { mois: 'Mar', offres: 82 },
-                { mois: 'Avr', offres: 95 },
-                { mois: 'Mai', offres: 88 },
-                { mois: 'Juin', offres: 102 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mois" />
-                <YAxis />
-                <Tooltip />
-                <Area type="monotone" dataKey="offres" stroke="#1976d2" fill="#1976d250" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Grid>
-      </Grid>
+      
 
       {/* Troisième ligne - Compétences et Villes */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -295,19 +309,25 @@ const Dashboard = () => {
             <Typography variant="h6" gutterBottom>
               Top 10 Compétences Demandées
             </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={competencesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="nom" angle={-45} textAnchor="end" height={80} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#2e7d32">
-                  {competencesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`hsl(${index * 35}, 70%, 50%)`} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {competencesData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={competencesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nom" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#2e7d32">
+                    {competencesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`hsl(${index * 35}, 70%, 50%)`} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <Typography color="textSecondary" align="center" sx={{ py: 10 }}>
+                Aucune donnée de compétences disponible
+              </Typography>
+            )}
           </Paper>
         </Grid>
 
@@ -317,45 +337,9 @@ const Dashboard = () => {
             <Typography variant="h6" gutterBottom>
               Top Entreprises qui Recrutent
             </Typography>
-            <Box sx={{ mt: 2 }}>
-              {entreprises.length > 0 ? entreprises.map((entreprise, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    mb: 2,
-                    p: 1,
-                    borderRadius: 1,
-                    '&:hover': { backgroundColor: '#f5f5f5' }
-                  }}
-                >
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      minWidth: 30,
-                      fontWeight: 'bold',
-                      color: index < 3 ? '#ed6c02' : 'text.secondary'
-                    }}
-                  >
-                    #{index + 1}
-                  </Typography>
-                  <Typography variant="body1" sx={{ flex: 1 }}>
-                    {entreprise.entreprise}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {entreprise.count} offres
-                  </Typography>
-                </Box>
-              )) : (
-                // Données simulées si pas de données réelles
-                [
-                  { entreprise: 'La Laiterie du Berger', count: 8 },
-                  { entreprise: 'GBG', count: 6 },
-                  { entreprise: 'Maersk', count: 5 },
-                  { entreprise: 'UNICEF', count: 4 },
-                  { entreprise: 'AnyVan', count: 3 }
-                ].map((entreprise, index) => (
+            {entreprisesData.length > 0 ? (
+              <Box sx={{ mt: 2 }}>
+                {entreprisesData.map((entreprise, index) => (
                   <Box
                     key={index}
                     sx={{
@@ -384,9 +368,13 @@ const Dashboard = () => {
                       {entreprise.count} offres
                     </Typography>
                   </Box>
-                ))
-              )}
-            </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography color="textSecondary" align="center" sx={{ py: 10 }}>
+                Aucune donnée d'entreprises disponible
+              </Typography>
+            )}
           </Paper>
         </Grid>
       </Grid>
@@ -398,29 +386,35 @@ const Dashboard = () => {
             <Typography variant="h6" gutterBottom>
               Répartition Géographique des Offres
             </Typography>
-            <Box sx={{ height: 400, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
-              <MapContainer
-                center={[14.7167, -17.4677]}
-                zoom={7}
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                />
-                {villesData.map((ville, index) => (
-                  <Marker
-                    key={index}
-                    position={[ville.lat, ville.lng]}
-                  >
-                    <Popup>
-                      <strong>{ville.nom}</strong><br />
-                      {ville.offres} offres d'emploi
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-            </Box>
+            {villesData.length > 0 ? (
+              <Box sx={{ height: 400, width: '100%', borderRadius: 2, overflow: 'hidden' }}>
+                <MapContainer
+                  center={[14.7167, -17.4677]}
+                  zoom={7}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  />
+                  {villesData.map((ville, index) => (
+                    <Marker
+                      key={index}
+                      position={[ville.lat, ville.lng]}
+                    >
+                      <Popup>
+                        <strong>{ville.nom}</strong><br />
+                        {ville.offres} offres d'emploi
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </Box>
+            ) : (
+              <Typography color="textSecondary" align="center" sx={{ py: 10 }}>
+                Aucune donnée géographique disponible
+              </Typography>
+            )}
           </Paper>
         </Grid>
       </Grid>

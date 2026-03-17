@@ -94,3 +94,13 @@ CSV_FILE = DATA_DIR / 'offres_emploi_senegal_cleaned.csv'
 
 
 INSTALLED_APPS += ['django_filters']
+
+
+# config/settings.py - Ajoutez à la fin
+
+# Clé API pour le scraping (à générer)
+SCRAPING_API_KEY = os.getenv('SCRAPING_API_KEY', 'votre-cle-secrete-ici')
+
+# Pour l'assistant IA (si vous utilisez Claude/OpenAI)
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')

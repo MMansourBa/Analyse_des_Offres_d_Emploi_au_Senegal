@@ -27,7 +27,7 @@ const Navbar = () => {
           sx={{ flexGrow: 1, cursor: 'pointer' }}
           onClick={() => navigate('/')}
         >
-          Emploi Sénégal
+          JOB SENEGAL
         </Typography>
         
         <Box>
