@@ -348,21 +348,7 @@ const Accueil = () => {
             )}
           </Paper>
 
-          {/* Répartition par contrat (optionnel) */}
-          <Paper sx={{ p: 3 }}>
-            <Box display="flex" alignItems="center" mb={2}>
-              <Language sx={{ color: '#2e7d32', mr: 1 }} />
-              <Typography variant="h6">
-                Type de contrat dominant
-              </Typography>
-            </Box>
-            <Typography variant="h4" color="primary" gutterBottom>
-              {stats?.contrat_dominant?.type_contrat || 'Non spécifié'}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {stats?.contrat_dominant?.count || 0} offres disponibles
-            </Typography>
-          </Paper>
+          
         </Grid>
       </Grid>
 
