@@ -298,6 +298,54 @@ const Dashboard = () => {
         </Grid>
       </Grid>
 
+      {/* Première ligne de graphiques */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+  {/* Répartition par type de contrat - seule */}
+  <Grid item xs={12}>
+    <Paper sx={{ p: 3 }}>
+      <Typography variant="h6" gutterBottom align="center">
+        Répartition par Type de Contrat
+      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
+        {contratsData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={350}>
+            <PieChart>
+              <Pie
+                data={contratsData}
+                cx="50%"
+                cy="50%"
+                labelLine={true}
+                label={({ nom, percent }) => `${nom} (${(percent * 100).toFixed(1)}%)`}
+                outerRadius={130}
+                innerRadius={0}
+                fill="#8884d8"
+                dataKey="valeur"
+                paddingAngle={2}
+              >
+                {contratsData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value) => [`${value} offres`, 'Nombre']}
+              />
+              <Legend 
+                layout="horizontal" 
+                align="center"
+                verticalAlign="bottom"
+                wrapperStyle={{ paddingTop: "20px" }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <Typography color="textSecondary" align="center">
+            Aucune donnée disponible
+          </Typography>
+        )}
+      </Box>
+    </Paper>
+  </Grid>
+</Grid>
 
       
 
