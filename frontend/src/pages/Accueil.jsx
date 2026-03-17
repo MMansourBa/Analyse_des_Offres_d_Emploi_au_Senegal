@@ -211,46 +211,37 @@ const Accueil = () => {
 
       {/* KPIs */}
       <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Offres"
-            value={stats?.total_offres?.toLocaleString() || '0'}
-            icon={<Work sx={{ color: '#1976d2' }} />}
-            color="#1976d2"
-            subtitle="Offres d'emploi analysées"
-          />
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Secteur Leader"
-            value={stats?.secteur_dominant?.secteur || 'N/A'}
-            icon={<Business sx={{ color: '#2e7d32' }} />}
-            color="#2e7d32"
-            subtitle={stats?.secteur_dominant ? `${stats.secteur_dominant.count} offres` : 'Aucune donnée'}
-          />
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Ville Leader"
-            value={stats?.ville_top?.ville || 'N/A'}
-            icon={<LocationOn sx={{ color: '#ed6c02' }} />}
-            color="#ed6c02"
-            subtitle={stats?.ville_top ? `${stats.ville_top.count} offres` : 'Aucune donnée'}
-          />
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Croissance"
-            value={`${stats?.croissance_mensuelle > 0 ? '+' : ''}${stats?.croissance_mensuelle || 0}%`}
-            icon={<TrendingUp sx={{ color: stats?.croissance_mensuelle >= 0 ? '#4caf50' : '#f44336' }} />}
-            color={stats?.croissance_mensuelle >= 0 ? '#4caf50' : '#f44336'}
-            subtitle="vs mois précédent"
-          />
-        </Grid>
-      </Grid>
+  {/* Changer md={3} (25% de large) à md={4} (33% de large) */}
+  <Grid item xs={12} sm={6} md={4}>
+    <StatCard
+      title="Total Offres"
+      value={stats?.total_offres?.toLocaleString() || '0'}
+      icon={<Work sx={{ color: '#1976d2', fontSize: 40 }} />}
+      color="#1976d2"
+      subtitle="Offres d'emploi analysées"
+    />
+  </Grid>
+  
+  <Grid item xs={12} sm={6} md={4}>
+    <StatCard
+      title="Secteur Leader"
+      value={stats?.secteur_dominant?.secteur || 'N/A'}
+      icon={<Business sx={{ color: '#2e7d32', fontSize: 40 }} />}
+      color="#2e7d32"
+      subtitle={stats?.secteur_dominant ? `${stats.secteur_dominant.count} offres` : 'Aucune donnée'}
+    />
+  </Grid>
+  
+  <Grid item xs={12} sm={6} md={4}>
+    <StatCard
+      title="Ville Leader"
+      value={stats?.ville_top?.ville || 'N/A'}
+      icon={<LocationOn sx={{ color: '#ed6c02', fontSize: 40 }} />}
+      color="#ed6c02"
+      subtitle={stats?.ville_top ? `${stats.ville_top.count} offres` : 'Aucune donnée'}
+    />
+  </Grid>
+</Grid>
 
       {/* Message si pas de données */}
       {(!stats?.total_offres || stats.total_offres === 0) && (
