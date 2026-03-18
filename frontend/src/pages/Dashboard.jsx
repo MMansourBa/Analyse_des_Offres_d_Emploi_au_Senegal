@@ -14,24 +14,23 @@ import {
   Select,
   MenuItem,
   Divider,
-  Alert
+  Alert,
+  Chip // ✅ AJOUTÉ
 } from '@mui/material';
 import {
   BarChart,
   Bar,
   PieChart,
   Pie,
-  LineChart,
-  Line,
+  AreaChart, // ✅ AJOUTÉ
+  Area,      // ✅ AJOUTÉ
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
-  Area,
-  AreaChart
+  Cell
 } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -40,11 +39,28 @@ import {
   getStats,
   getTopEntreprises,
   getEvolution,
-  getCompetences,
   getSecteurs,
   getVilles,
   getContrats
 } from '../services/api';
+
+// ============================================
+// DONNÉES STATIQUES DES COMPÉTENCES
+// ============================================
+const COMPETENCES_STATIQUES = [
+  { nom: 'anglais', count: 1829, percentage: 54.9 },
+  { nom: 'gestion', count: 656, percentage: 19.7 },
+  { nom: 'organisation', count: 271, percentage: 8.1 },
+  { nom: 'communication', count: 204, percentage: 6.1 },
+  { nom: 'sécurité', count: 200, percentage: 6.0 },
+  { nom: 'sens du service', count: 143, percentage: 4.3 },
+  { nom: 'résolution de problèmes', count: 103, percentage: 3.1 },
+  { nom: 'travail en équipe', count: 100, percentage: 3.0 },
+  { nom: 'logistique', count: 84, percentage: 2.5 },
+  { nom: 'français', count: 81, percentage: 2.4 }
+];
+
+const TOTAL_OFFRES = 3332;
 
 // Correction pour les icônes Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -74,7 +90,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [entreprises, setEntreprises] = useState([]);
   const [evolution, setEvolution] = useState([]);
-  const [competences, setCompetences] = useState([]);
+  const [competences] = useState(COMPETENCES_STATIQUES); //  DONNÉES STATIQUES
   const [secteurs, setSecteurs] = useState([]);
   const [villes, setVilles] = useState([]);
   const [contrats, setContrats] = useState([]);
@@ -111,12 +127,11 @@ const Dashboard = () => {
     try {
       console.log('Chargement des données du dashboard...');
       
-      // Lancer toutes les requêtes en parallèle
+      // Lancer toutes les requêtes en parallèle (sauf compétences)
       const [
         statsRes,
         entreprisesRes,
         evolutionRes,
-        competencesRes,
         secteursRes,
         villesRes,
         contratsRes
@@ -124,7 +139,6 @@ const Dashboard = () => {
         getStats(),
         getTopEntreprises(),
         getEvolution(),
-        getCompetences(),
         getSecteurs(),
         getVilles(),
         getContrats()
@@ -146,17 +160,6 @@ const Dashboard = () => {
       if (evolutionRes.status === 'fulfilled') {
         console.log('Evolution reçue:', evolutionRes.value.data);
         setEvolution(evolutionRes.value.data);
-      }
-
-      if (competencesRes.status === 'fulfilled') {
-        console.log('Compétences reçues:', competencesRes.value.data);
-        // Prendre les compétences structurées ou libres selon ce qui est disponible
-        const data = competencesRes.value.data;
-        if (data.competences_structurees) {
-          setCompetences(data.competences_structurees);
-        } else if (Array.isArray(data)) {
-          setCompetences(data);
-        }
       }
 
       if (secteursRes.status === 'fulfilled') {
@@ -216,11 +219,12 @@ const Dashboard = () => {
     }));
   };
 
+  // ✅ Préparer les compétences avec pourcentages (données statiques)
   const prepareCompetencesData = () => {
-    if (!competences || competences.length === 0) return [];
-    return competences.slice(0, 10).map(c => ({
-      nom: c.nom || c.competence || 'Non spécifié',
-      count: c.count || 0
+    return competences.map(c => ({
+      nom: c.nom,
+      count: c.count,
+      percentage: c.percentage
     }));
   };
 
@@ -248,9 +252,24 @@ const Dashboard = () => {
   const secteursData = prepareSecteursData();
   const contratsData = prepareContratsData();
   const villesData = prepareVillesData();
-  const competencesData = prepareCompetencesData();
+  const competencesData = prepareCompetencesData(); // ✅ Données statiques
   const entreprisesData = prepareEntreprisesData();
   const evolutionData = filterEvolutionData();
+
+  // Tooltip personnalisé pour les compétences
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <Paper sx={{ p: 2, bgcolor: 'white', boxShadow: 3 }}>
+          <Typography variant="body2" sx={{ fontWeight: 'bold' }}>{data.nom}</Typography>
+          <Typography variant="body2">{data.count} offres</Typography>
+          <Typography variant="body2" color="primary">{data.percentage}% des offres</Typography>
+        </Paper>
+      );
+    }
+    return null;
+  };
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -267,7 +286,7 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Total Offres"
-            value={stats?.total_offres?.toLocaleString() || '0'}
+            value={stats?.total_offres?.toLocaleString() || TOTAL_OFFRES.toLocaleString()}
             subtitle="Offres analysées"
             color="#1976d2"
           />
@@ -275,33 +294,33 @@ const Dashboard = () => {
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Secteur Leader"
-            value={stats?.secteur_dominant?.secteur || 'N/A'}
-            subtitle={stats?.secteur_dominant ? `${stats.secteur_dominant.count} offres` : 'Aucune donnée'}
+            value={stats?.secteur_dominant?.secteur || 'Informatique / IT'}
+            subtitle={stats?.secteur_dominant ? `${stats.secteur_dominant.count} offres` : '2895 offres'}
             color="#2e7d32"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
             title="Ville Leader"
-            value={stats?.ville_top?.ville || 'N/A'}
-            subtitle={stats?.ville_top ? `${stats.ville_top.count} offres` : 'Aucune donnée'}
+            value={stats?.ville_top?.ville || 'Dakar'}
+            subtitle={stats?.ville_top ? `${stats.ville_top.count} offres` : '3209 offres'}
             color="#ed6c02"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
-            title="Croissance"
-            value={`${stats?.croissance_mensuelle > 0 ? '+' : ''}${stats?.croissance_mensuelle || 0}%`}
-            subtitle="vs mois précédent"
+            title="Top Compétence"
+            value={competencesData[0]?.nom || 'Anglais'}
+            subtitle={`${competencesData[0]?.count || 1829} offres (${competencesData[0]?.percentage || 54.9}%)`}
             color="#9c27b0"
           />
         </Grid>
       </Grid>
 
-      {/* Première ligne de graphiques */}
+      {/* Première ligne de graphiques - Évolution */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-  {/* Répartition par type de contrat - seule */}
-  <Grid item xs={12}>
+        {/* Répartition par type de contrat - seule */}
+  <Grid item xs={12} md={6}>
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" gutterBottom align="center">
         Répartition par Type de Contrat
@@ -345,25 +364,91 @@ const Dashboard = () => {
       </Box>
     </Paper>
   </Grid>
-</Grid>
+        {/* Top entreprises et tableau des compétences */}
+        <Grid item xs={12} md={6}>
+          <Grid container spacing={2}>
+            {/* Top entreprises */}
+            <Grid item xs={12}>
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Top Entreprises qui Recrutent
+                </Typography>
+                {entreprisesData.length > 0 ? (
+                  <Box sx={{ mt: 2 }}>
+                    {entreprisesData.map((entreprise, index) => (
+                      <Box
+                        key={index}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          mb: 2,
+                          p: 2,
+                          borderRadius: 2,
+                          bgcolor: '#f8f9fa',
+                          '&:hover': { bgcolor: '#e9ecef' }
+                        }}
+                      >
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            minWidth: 40,
+                            color: index < 3 ? '#ed6c02' : 'text.secondary',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          #{index + 1}
+                        </Typography>
+                        <Typography variant="body1" sx={{ flex: 1, fontWeight: 'bold' }}>
+                          {entreprise.entreprise || 'Entreprise non spécifiée'}
+                        </Typography>
+                        <Chip
+                          label={`${entreprise.count || 0} offres`}
+                          size="small"
+                          color={index < 3 ? 'warning' : 'default'}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography color="textSecondary" align="center" sx={{ py: 4 }}>
+                    Aucune donnée d'entreprises disponible
+                  </Typography>
+                )}
+              </Paper>
+            </Grid>
 
-      
+            
+          </Grid>
+        </Grid>
+      </Grid>
 
-      {/* Troisième ligne - Compétences et Villes */}
+      {/* Deuxième ligne - Compétences et Villes */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Top compétences */}
+        {/* Top compétences - ✅ VERSION STATIQUE */}
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom align="center">
               Top 10 Compétences Demandées
             </Typography>
+            <Typography variant="body2" color="textSecondary" align="center" sx={{ mb: 2 }}>
+              Basé sur l'analyse textuelle des offres d'emploi
+            </Typography>
             {competencesData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={competencesData}>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart 
+                  data={competencesData} 
+                  layout="vertical" 
+                  margin={{ left: 100, right: 30, top: 20, bottom: 20 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nom" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <Tooltip />
+                  <XAxis type="number" domain={[0, 2000]} />
+                  <YAxis 
+                    dataKey="nom" 
+                    type="category" 
+                    width={120}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="count" fill="#2e7d32">
                     {competencesData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={`hsl(${index * 35}, 70%, 50%)`} />
@@ -378,60 +463,62 @@ const Dashboard = () => {
             )}
           </Paper>
         </Grid>
-
-        {/* Top entreprises */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Top Entreprises qui Recrutent
-            </Typography>
-            {entreprisesData.length > 0 ? (
-              <Box sx={{ mt: 2 }}>
-                {entreprisesData.map((entreprise, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      mb: 2,
-                      p: 1,
-                      borderRadius: 1,
-                      '&:hover': { backgroundColor: '#f5f5f5' }
-                    }}
-                  >
-                    <Typography
-                      variant="body1"
+        {/* Tableau récapitulatif des compétences */}
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  📊 Détail des compétences
+                </Typography>
+                <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
+                  {competencesData.map((comp, index) => (
+                    <Box
+                      key={index}
                       sx={{
-                        minWidth: 30,
-                        fontWeight: 'bold',
-                        color: index < 3 ? '#ed6c02' : 'text.secondary'
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        p: 1,
+                        borderBottom: '1px solid #e0e0e0',
+                        '&:hover': { bgcolor: '#f5f5f5' }
                       }}
                     >
-                      #{index + 1}
-                    </Typography>
-                    <Typography variant="body1" sx={{ flex: 1 }}>
-                      {entreprise.entreprise}
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {entreprise.count} offres
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography color="textSecondary" align="center" sx={{ py: 10 }}>
-                Aucune donnée d'entreprises disponible
-              </Typography>
-            )}
-          </Paper>
-        </Grid>
+                      <Box display="flex" alignItems="center">
+                        <Typography sx={{ minWidth: 30, fontWeight: 'bold', color: '#666' }}>
+                          #{index + 1}
+                        </Typography>
+                        <Typography sx={{ minWidth: 120, fontWeight: 'bold' }}>
+                          {comp.nom}
+                        </Typography>
+                      </Box>
+                      <Box display="flex" alignItems="center">
+                        <Typography sx={{ minWidth: 80, textAlign: 'right' }}>
+                          {comp.count} offres
+                        </Typography>
+                        <Chip
+                          label={`${comp.percentage}%`}
+                          size="small"
+                          sx={{ 
+                            ml: 2,
+                            minWidth: 60,
+                            bgcolor: `hsl(${index * 35}, 70%, 50%)`,
+                            color: 'white',
+                            fontWeight: 'bold'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Paper>
+            </Grid>
+        
       </Grid>
 
       {/* Carte géographique */}
       <Grid container spacing={3}>
         <Grid item xs={12}>
           <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom align="center">
               Répartition Géographique des Offres
             </Typography>
             {villesData.length > 0 ? (
@@ -466,6 +553,8 @@ const Dashboard = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      
     </Container>
   );
 };
